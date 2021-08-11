@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Upload MuLtiple Files</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="container">
+            <h1>Upload the following Files</h1>
+            <form action= "/uploads" id="post" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file1">Upload File 1:</label>
+                    <input type="file" name="file1" id="" required class="form-control">
+                </div>
+                <br>
+                <div class="form-group">
+                    <label for="file2">Upload File 2:</label>
+                    <input type="file" name="file2" id="" required class="form-control">
+                </div>
+                <br>
+                <div class="form-group">
+                    <button class="btn">Upload Files</button>
+                </div>
+            </div>
+            
+            </form>
+
+        </div>
+    </body>
+</html>
