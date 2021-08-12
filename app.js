@@ -36,7 +36,7 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage })
 
 var uploadMultiple = upload.fields([{name: 'file1', maxCount: 10}])
-
+var folderId = '1e6LO-kFNEcfTVyuIdtK-UFXQLAti4wyX'
 app.post("/uploads", uploadMultiple , async (req,res) =>{
     try{
         const files = req.files
@@ -58,17 +58,13 @@ app.post("/uploads", uploadMultiple , async (req,res) =>{
                             mimeType: file.minetype,
                             body: fs.createReadStream(file.path),
                         }
-                        const response=await drive.files.create(
-                            {
-                                resource: fileMetadata,
-                                media: media,
-                                fields: "id"
-                            }
-                        )
-                        fs.unlinkSync(file.path) 
-                    }
+                        return res.send('Upload Success')
+                    }    
+                });
+            }catch(err){
+            if(err)
+                console.log(err)
         }
-        return res.send('Upload Success')
     }catch(err){
         console.log(err)
         return res.send('Error')
