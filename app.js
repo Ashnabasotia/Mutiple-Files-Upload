@@ -1,13 +1,13 @@
 const express = require('express')
 const multer  = require('multer')
 const path    = require('path')
-const fs=require('fs')
+const fs     = require('fs')
 const OAuth2Data = require('./credentials.json')
 
 const {google}   = require('googleapis')
 
 const app = express()
-
+app.use(express.static(path.join(__dirname,"/public")))
 const CLIENT_ID     =     OAuth2Data.web.client_id
 const CLIENT_SECRET =     OAuth2Data.web.client_secret
 const REDIRECT_URI  =     OAuth2Data.web.redirect_uris[0]
@@ -35,35 +35,38 @@ var storage = multer.diskStorage({
 
 var upload = multer({ storage: storage })
 
-var uploadMultiple = upload.fields([ {name: 'file1', maxCount: 10}, {name: 'file2', maxCount: 10 } ])
+var uploadMultiple = upload.fields([{name: 'file1', maxCount: 10}])
 
 app.post("/uploads", uploadMultiple , async (req,res) =>{
     try{
         const files = req.files
         console.log(req.files)
         for (const name in files) {
-            if (Object.hasOwnProperty.call(files, name)) {
-                const file = files[name][0];
-                console.log('File is')
-                console.log(file)
-                const drive = google.drive({ version: "v3", auth: oAuth2Client})
-                const fileMetadata = {
-                    name: file.filename
-                }
-                const media = {
-                    mimeType: file.minetype,
-                    body: fs.createReadStream(file.path),
-                }
-                const response=await drive.files.create(
+            console.log(files[name])
+            // if (Object.hasOwnProperty.call(files, name))
+            for(var i in files[name])
                     {
-                        resource: fileMetadata,
-                        media: media,
-                        fields: "id"
+                        var file = files[name][i]
+                        console.log('File is')
+                        console.log(file)
+                        console.log (file.path)
+                        const drive = google.drive({ version: "v3", auth: oAuth2Client})
+                        const fileMetadata = {
+                            name: file.filename
+                        }
+                        const media = {
+                            mimeType: file.minetype,
+                            body: fs.createReadStream(file.path),
+                        }
+                        const response=await drive.files.create(
+                            {
+                                resource: fileMetadata,
+                                media: media,
+                                fields: "id"
+                            }
+                        )
+                        fs.unlinkSync(file.path) 
                     }
-                )
-                fs.unlinkSync(file.path)
-                //console.log(respone)   
-            }
         }
         return res.send('Upload Success')
     }catch(err){

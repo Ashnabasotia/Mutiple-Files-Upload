@@ -2,21 +2,36 @@
 <html>
     <head>
         <title>Upload MuLtiple Files</title>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="/~styles/style.css">
     </head>
     <body>
         <div class="container">
             <h1>Upload the following Files</h1>
             <form action= "/uploads" id="post" method="post" enctype="multipart/form-data">
+                <div class="dropdown">
+                    <label for="ID">Employee ID</label>
+                    <select id="ID" name="id">
+                        <option value="001">001</option>
+                        <option value="002">002</option>
+                        <option value="003">003</option>
+                    </select>
+                    </div>
+                  </div>
+                  <br>
+                  <br>
+                  <br>
+                  <br>
                 <div class="form-group">
                     <label for="file1">Upload File 1:</label>
-                    <input type="file" name="file1" id="" required class="form-control">
+                    <input type="file" name="file1" id="" required class="form-control" multiple>
                 </div>
                 <br>
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label for="file2">Upload File 2:</label>
                     <input type="file" name="file2" id="" required class="form-control">
-                </div>
+                </div> -->
+                <br>
+                <br>
                 <br>
                 <div class="form-group">
                     <button class="btn">Upload Files</button>
