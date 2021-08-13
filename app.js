@@ -3,6 +3,7 @@ const multer  = require('multer')
 const path    = require('path')
 const fs     = require('fs')
 const OAuth2Data = require('./credentials.json')
+const async      = require('async')
 
 const {google}   = require('googleapis')
 
@@ -29,7 +30,7 @@ var storage = multer.diskStorage({
         cb(null,'uploads')
     },
     filename: function(req,file,cb){
-        cb(null,file.name+'-'+Date.now()+path.extname(file.originalname))
+        cb(null,file.originalname+'-'+Date.now()+path.extname(file.originalname))
     }
 })
 
@@ -37,42 +38,122 @@ var upload = multer({ storage: storage })
 
 var uploadMultiple = upload.fields([{name: 'file1', maxCount: 10}])
 var folderId = '1e6LO-kFNEcfTVyuIdtK-UFXQLAti4wyX'
-app.post("/uploads", uploadMultiple , async (req,res) =>{
+app.post("/uploads", uploadMultiple,(req,res) =>{
     try{
-        const files = req.files
-        console.log(req.files)
-        for (const name in files) {
-            console.log(files[name])
-            // if (Object.hasOwnProperty.call(files, name))
-            for(var i in files[name])
-                    {
-                        var file = files[name][i]
-                        console.log('File is')
-                        console.log(file)
-                        console.log (file.path)
-                        const drive = google.drive({ version: "v3", auth: oAuth2Client})
-                        const fileMetadata = {
-                            name: file.filename
+          const files = req.files
+        //creating a folder in root folder
+            const drive = google.drive({ version: "v3", auth: oAuth2Client})
+                //checking for the presence of a folder
+                    var pageToken = null;
+                    // Using the NPM module 'async'
+                    
+                    drive.files.list({
+                        q: "mimeType = 'application/vnd.google-apps.folder' and parents in '1e6LO-kFNEcfTVyuIdtK-UFXQLAti4wyX'" ,      
+                        fields: 'nextPageToken, files(id, name)',
+                        spaces: 'drive'
+                    }, function (err, response) {
+                        if (err) {
+                            // Handle error
+                            console.error(err)
+                        } else {
+                                var flag = false
+                                response.data.files.forEach(function(file){
+                                    console.log(file)
+                                    if (file.name === req.body.id)
+                                        {
+                                            flag = true
+                                            console.log("Found")
+                                        }
+                                })
+
+                                if(flag === true)
+                                {
+                                for (const name in files) {
+                                    console.log(files[name])
+                                    // if (Object.hasOwnProperty.call(files, name)) 
+                                    for(var i in files[name])
+                                            {                        
+                                                var file = files[name][i]
+                                                console.log('File is')
+                                                console.log(file)
+                                                console.log (file.path)
+                                                const fileMetadata = {
+                                                    name: file.filename,
+                                                    parents: [response.data.files[0].id]
+                                                }
+                                                const media = {
+                                                    mimeType: file.minetype,
+                                                    body: fs.createReadStream(file.path),
+                                                }
+                                                    drive.files.create(
+                                                    {
+                                                        resource: fileMetadata,
+                                                        media: media,
+                                                        fields: "id"
+                                                    }
+                                                )
+                                                fs.unlinkSync(file.path) 
+                                            }
+                                }
+                            }
+                            else{
+                                var fileMetadata = {
+                                    'name': req.body.id,
+                                    'mimeType': 'application/vnd.google-apps.folder',
+                                    parents: [folderId]
+                                };
+                                drive.files.create({
+                                    resource: fileMetadata,
+                                    fields: 'id'
+                                }, function (err, folder) {
+                                    if (err) {
+                                    // Handle error
+                                    console.error(err);
+                                    } 
+                                    else {
+                                        for (const name in files) {
+                                            console.log(files[name])
+                                            // if (Object.hasOwnProperty.call(files, name)) 
+                                            for(var i in files[name])
+                                                    {
+                                
+                                                        var file = files[name][i]
+                                                        console.log('File is')
+                                                        console.log(file)
+                                                        console.log (file.path)
+                                                        const fileMetadata = {
+                                                            name: file.filename,
+                                                            parents: [folder.data.id]
+                                                        }
+                                                        const media = {
+                                                            mimeType: file.minetype,
+                                                            body: fs.createReadStream(file.path),
+                                                        }
+                                                            drive.files.create(
+                                                            {
+                                                                resource: fileMetadata,
+                                                                media: media,
+                                                                fields: "id"
+                                                            }
+                                                        )
+                                                        fs.unlinkSync(file.path) 
+                                                    }
+                                        }
+                                    }
+                                       
+                                });
+                            }                            
                         }
-                        const media = {
-                            mimeType: file.minetype,
-                            body: fs.createReadStream(file.path),
-                        }
-                        return res.send('Upload Success')
-                    }    
-                });
+                    });    
+                return res.send('Upload Success')    
             }catch(err){
-            if(err)
-                console.log(err)
-        }
-    }catch(err){
-        console.log(err)
-        return res.send('Error')
-    }            
+                    console.log(err)
+                    return res.send('Error')
+            }            
 })
-
-
-app.get('/', (req,res) => {
+            
+            
+            app.get('/', (req,res) => {
     if(!authed){
 
         var url = oAuth2Client.generateAuthUrl({
@@ -81,7 +162,7 @@ app.get('/', (req,res) => {
         })
         console.log(url)
         res.render("index",{url:url})
-
+        
     }else{
         console.log("User Authenticated")
         res.render("choose")
@@ -90,7 +171,7 @@ app.get('/', (req,res) => {
 
 app.get('/google/callback', (req,res) => {
     const code = req.query.code
-
+    
     if(code){
         oAuth2Client.getToken(code,function(err,tokens){
             if(err){
