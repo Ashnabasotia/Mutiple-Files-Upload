@@ -38,20 +38,18 @@ var upload = multer({ storage: storage })
 
 var uploadMultiple = upload.fields([{name: 'file1', maxCount: 10}])
 var folderId = '1e6LO-kFNEcfTVyuIdtK-UFXQLAti4wyX'
-app.post("/uploads", uploadMultiple,(req,res) =>{
+app.post("/uploads", uploadMultiple, (req,res) =>{
     try{
           const files = req.files
         //creating a folder in root folder
             const drive = google.drive({ version: "v3", auth: oAuth2Client})
                 //checking for the presence of a folder
-                    var pageToken = null;
-                    // Using the NPM module 'async'
-                    
+                    var obj = null
                     drive.files.list({
-                        q: "mimeType = 'application/vnd.google-apps.folder' and parents in '1e6LO-kFNEcfTVyuIdtK-UFXQLAti4wyX'" ,      
+                        q: "mimeType = 'application/vnd.google-apps.folder' and trashed = false" ,      
                         fields: 'nextPageToken, files(id, name)',
                         spaces: 'drive'
-                    }, function (err, response) {
+                    },  function (err, response) {
                         if (err) {
                             // Handle error
                             console.error(err)
@@ -62,47 +60,54 @@ app.post("/uploads", uploadMultiple,(req,res) =>{
                                     if (file.name === req.body.id)
                                         {
                                             flag = true
-                                            console.log("Found")
+                                            obj = file
                                         }
                                 })
 
                                 if(flag === true)
                                 {
+                                 console.time("label1")
                                 for (const name in files) {
-                                    console.log(files[name])
+                                    //console.log(files[name])
                                     // if (Object.hasOwnProperty.call(files, name)) 
                                     for(var i in files[name])
                                             {                        
                                                 var file = files[name][i]
-                                                console.log('File is')
-                                                console.log(file)
-                                                console.log (file.path)
                                                 const fileMetadata = {
                                                     name: file.filename,
-                                                    parents: [response.data.files[0].id]
+                                                    parents: [obj.id]
                                                 }
                                                 const media = {
                                                     mimeType: file.minetype,
                                                     body: fs.createReadStream(file.path),
                                                 }
-                                                    drive.files.create(
+                                                 drive.files.create(
                                                     {
                                                         resource: fileMetadata,
                                                         media: media,
+                                                        uploadType: 'resumable',
                                                         fields: "id"
+                                                    },function(err,result)
+                                                    {
+                                                        if(err)
+                                                            console.log(err)
+                                                        else
+                                                            console.log("Upload Sucessfull")
+                                                            console.timeEnd("label")
                                                     }
                                                 )
-                                                fs.unlinkSync(file.path) 
+                                                fs.unlinkSync(file.path)
                                             }
                                 }
-                            }
+                                return res.send('Upload Success')
+                                }
                             else{
                                 var fileMetadata = {
                                     'name': req.body.id,
                                     'mimeType': 'application/vnd.google-apps.folder',
                                     parents: [folderId]
                                 };
-                                drive.files.create({
+                                 drive.files.create({
                                     resource: fileMetadata,
                                     fields: 'id'
                                 }, function (err, folder) {
@@ -111,6 +116,7 @@ app.post("/uploads", uploadMultiple,(req,res) =>{
                                     console.error(err);
                                     } 
                                     else {
+                                        console.time()
                                         for (const name in files) {
                                             console.log(files[name])
                                             // if (Object.hasOwnProperty.call(files, name)) 
@@ -118,9 +124,6 @@ app.post("/uploads", uploadMultiple,(req,res) =>{
                                                     {
                                 
                                                         var file = files[name][i]
-                                                        console.log('File is')
-                                                        console.log(file)
-                                                        console.log (file.path)
                                                         const fileMetadata = {
                                                             name: file.filename,
                                                             parents: [folder.data.id]
@@ -129,24 +132,33 @@ app.post("/uploads", uploadMultiple,(req,res) =>{
                                                             mimeType: file.minetype,
                                                             body: fs.createReadStream(file.path),
                                                         }
-                                                            drive.files.create(
-                                                            {
+                                                        
+                                                        drive.files.create(
+                                                        {
                                                                 resource: fileMetadata,
                                                                 media: media,
                                                                 fields: "id"
+                                                            },function(err,result)
+                                                            {
+                                                                if(err)
+                                                                    console.log(err)
+                                                                else
+                                                                    console.log("Upload Successful")
+                                                                    console.timeEnd(file.filename) 
                                                             }
                                                         )
-                                                        fs.unlinkSync(file.path) 
+                                                        fs.unlinkSync(file.path)
+                                                        
                                                     }
                                         }
+                                        return res.send('Upload Success')
                                     }
                                        
                                 });
                             }                            
-                        }
+                        } 
                     });    
-                return res.send('Upload Success')    
-            }catch(err){
+        }catch(err){
                     console.log(err)
                     return res.send('Error')
             }            
@@ -154,7 +166,7 @@ app.post("/uploads", uploadMultiple,(req,res) =>{
             
             
             app.get('/', (req,res) => {
-    if(!authed){
+                if(!authed){
 
         var url = oAuth2Client.generateAuthUrl({
             access_type:'offline',
